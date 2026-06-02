@@ -7,11 +7,13 @@ import { PostCard } from "@/components/post-card"
 import MainLayout from "@/components/main-layout"
 import { useState } from "react"
 import { Users } from "lucide-react"
+import { SortDropdown, type SortOption } from "@/components/sort-dropdown"
 
 export default function HomePage() {
   const router = useRouter()
   const { isLoggedIn, posts } = useAppStore()
   const [activeTab, setActiveTab] = useState<"following" | "explore">("following")
+  const [sortBy, setSortBy] = useState<SortOption>("latest")
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -28,7 +30,21 @@ export default function HomePage() {
     post => post.author.isFollowing || post.author.id === "1"
   )
 
-  const displayPosts = activeTab === "following" ? followingPosts : posts
+  // 排序函数
+  const sortPosts = (postsToSort: typeof posts) => {
+    const sorted = [...postsToSort]
+    switch (sortBy) {
+      case "popular":
+        return sorted.sort((a, b) => b.likesCount - a.likesCount)
+      case "comments":
+        return sorted.sort((a, b) => b.commentsCount - a.commentsCount)
+      case "latest":
+      default:
+        return sorted // 默认已按最新排序
+    }
+  }
+
+  const displayPosts = sortPosts(activeTab === "following" ? followingPosts : posts)
 
   return (
     <MainLayout>
@@ -58,6 +74,10 @@ export default function HomePage() {
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full" />
               )}
             </button>
+          </div>
+          {/* 排序选项 */}
+          <div className="flex items-center justify-end px-4 py-2 border-t border-border/50">
+            <SortDropdown value={sortBy} onChange={setSortBy} />
           </div>
         </header>
 

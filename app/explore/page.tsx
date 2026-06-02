@@ -10,11 +10,13 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { SortDropdown, type SortOption } from "@/components/sort-dropdown"
 
 export default function ExplorePage() {
   const router = useRouter()
   const { isLoggedIn, posts, users, toggleFollow } = useAppStore()
   const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState<SortOption>("popular")
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -26,19 +28,33 @@ export default function ExplorePage() {
     return null
   }
 
-  // 热门帖子（按点赞数排序）
-  const trendingPosts = [...posts].sort((a, b) => b.likesCount - a.likesCount)
+  // 排序函数
+  const sortPosts = (postsToSort: typeof posts) => {
+    const sorted = [...postsToSort]
+    switch (sortBy) {
+      case "popular":
+        return sorted.sort((a, b) => b.likesCount - a.likesCount)
+      case "comments":
+        return sorted.sort((a, b) => b.commentsCount - a.commentsCount)
+      case "latest":
+      default:
+        return sorted
+    }
+  }
+
+  // 热门帖子（按选择的排序方式）
+  const trendingPosts = sortPosts(posts)
 
   // 推荐用户（未关注的）
   const suggestedUsers = users.filter(u => !u.isFollowing && u.id !== "1")
 
   // 搜索过滤
   const filteredPosts = searchQuery
-    ? posts.filter(
+    ? sortPosts(posts.filter(
         post =>
           post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
           post.author.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      ))
     : trendingPosts
 
   return (
@@ -93,12 +109,15 @@ export default function ExplorePage() {
 
         {/* Trending Posts */}
         <section className="p-4">
-          {!searchQuery && (
-            <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
-              <h2 className="font-semibold text-foreground">热门动态</h2>
+              <h2 className="font-semibold text-foreground">
+                {searchQuery ? "搜索结果" : "热门动态"}
+              </h2>
             </div>
-          )}
+            <SortDropdown value={sortBy} onChange={setSortBy} />
+          </div>
           
           {searchQuery && filteredPosts.length === 0 ? (
             <div className="text-center py-16">
